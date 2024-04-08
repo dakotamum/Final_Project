@@ -9,8 +9,7 @@ public class Navigation : MonoBehaviour
     private Vector2 rotationInput;
     private Vector2 movementInput;
     private CharacterController character;
-    public float speed = 10;
-    private float currentSpeed;
+    public float speed = 5.0f;
     public float boostedSpeedMultiplier = 2.0f;
     private XROrigin rig;
     private float fallingSpeed;
@@ -23,7 +22,6 @@ public class Navigation : MonoBehaviour
         rig = GetComponent<XROrigin>();
         // initialize jump speed and currentSpeed
         jumpSpeed = Mathf.Sqrt(2 * jumpHeight * -Physics.gravity.y);
-        currentSpeed = speed;
     }
     private void FixedUpdate()
     {
@@ -43,7 +41,7 @@ public class Navigation : MonoBehaviour
         {
             Quaternion headYaw = Quaternion.Euler(0, rig.Camera.transform.eulerAngles.y, 0);
             Vector3 direction = headYaw * new Vector3(movementInput.x, 0, movementInput.y);
-            character.Move(direction * Time.fixedDeltaTime * currentSpeed);
+            character.Move(direction * Time.fixedDeltaTime * speed);
         }
 
         if (rotationInput != Vector2.zero)
@@ -55,20 +53,20 @@ public class Navigation : MonoBehaviour
     {
         InputDevice leftDevice = InputDevices.GetDeviceAtXRNode(leftInputSource);
         leftDevice.TryGetFeatureValue(CommonUsages.primary2DAxis, out rotationInput);
-        bool xButtonPressed;
-        leftDevice.TryGetFeatureValue(CommonUsages.primaryButton, out xButtonPressed);
-        // jump if we're on the ground and x was pressed
-        if (xButtonPressed && character.isGrounded)
-        {
-            fallingSpeed = jumpSpeed;
-        }
+        // bool xButtonPressed;
+        // leftDevice.TryGetFeatureValue(CommonUsages.primaryButton, out xButtonPressed);
+        // // jump if we're on the ground and x was pressed
+        // if (xButtonPressed && character.isGrounded)
+        // {
+        //     fallingSpeed = jumpSpeed;
+        // }
 
         InputDevice rightDevice = InputDevices.GetDeviceAtXRNode(rightInputSource);
         rightDevice.TryGetFeatureValue(CommonUsages.primary2DAxis, out movementInput);
 
         // check for acceleration
-        rightDevice.TryGetFeatureValue(CommonUsages.trigger, out float triggerValue);
-        bool isTriggerPressed = triggerValue > 0.1f;
-        currentSpeed = isTriggerPressed ? speed * boostedSpeedMultiplier : speed;
+        // rightDevice.TryGetFeatureValue(CommonUsages.trigger, out float triggerValue);
+        // bool isTriggerPressed = triggerValue > 0.1f;
+        // currentSpeed = isTriggerPressed ? speed * boostedSpeedMultiplier : speed;
     }
 }
