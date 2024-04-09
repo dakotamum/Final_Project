@@ -5,40 +5,34 @@ using Unity.XR.CoreUtils;
 
 public class PortalTeleporter : MonoBehaviour
 {
-    public Transform destinationPortal; // Assign this in the Inspector
-    private bool isTeleporting = false; // Flag to check if we're in the cooldown period
-    public float teleportCooldown = 1.0f; // Cooldown period in seconds
+    public Transform destinationPortal;
+    private bool isTeleporting = false;
+    public float teleportCooldown = 1.0f;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (isTeleporting) return; // Exit if we're in the cooldown period
+        if (isTeleporting) return;
 
         XROrigin xrOrigin = FindObjectOfType<XROrigin>();
         Navigation navigation = xrOrigin.GetComponent<Navigation>();
 
         if (xrOrigin != null && !isTeleporting)
         {
-            // Teleport the XR Origin to the destination portal
             xrOrigin.transform.position = destinationPortal.position;
 
             float scaleRatio = destinationPortal.localScale.y / xrOrigin.transform.localScale.y;
-            Debug.Log(destinationPortal.transform.localScale.y);
 
-            ScaleXROriginAndAdjustSpeed(xrOrigin, navigation, scaleRatio);
+            adjustPlayer(xrOrigin, navigation, scaleRatio);
             StartCoroutine(TeleportCooldown());
         }
     }
 
-    void ScaleXROriginAndAdjustSpeed(XROrigin xrOrigin, Navigation navigation, float scaleRatio)
+    void adjustPlayer(XROrigin xrOrigin, Navigation navigation, float scaleRatio)
     {
-        // Adjusting the local scale of the XR Origin
         xrOrigin.transform.localScale *= scaleRatio;
-
-        // Assuming 'speed' and 'jumpHeight' are public or internal variables of your Navigation script
+        
         navigation.speed *= scaleRatio;
         navigation.jumpHeight *= scaleRatio;
-
-        // Scale the CharacterController dimensions
         CharacterController characterController = xrOrigin.GetComponent<CharacterController>();
         if (characterController != null)
         {
@@ -48,6 +42,13 @@ public class PortalTeleporter : MonoBehaviour
             characterController.stepOffset *= scaleRatio;
             characterController.center = new Vector3(characterController.center.x, characterController.center.y * scaleRatio, characterController.center.z);
         }
+
+        float angleDifference = destinationPortal.transform.eulerAngles.y - xrOrigin.transform.eulerAngles.y;
+        if (destinationPortal.gameObject.tag == "PortalA")
+        {
+            angleDifference += 180;
+        }
+        xrOrigin.transform.Rotate(0, angleDifference, 0);
     }
 
     private IEnumerator TeleportCooldown()
