@@ -1,7 +1,6 @@
 using System.Collections;
-using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit;
 using Unity.XR.CoreUtils;
+using UnityEngine;
 
 public class PortalTeleporter : MonoBehaviour
 {
@@ -22,19 +21,18 @@ public class PortalTeleporter : MonoBehaviour
 
             float scaleRatio = destinationPortal.localScale.y / xrOrigin.transform.localScale.y;
 
-            adjustPlayer(xrOrigin, navigation, scaleRatio);
+            AdjustPlayer(xrOrigin, navigation, scaleRatio);
             StartCoroutine(TeleportCooldown());
         }
     }
 
-    void adjustPlayer(XROrigin xrOrigin, Navigation navigation, float scaleRatio)
+    void AdjustPlayer(XROrigin xrOrigin, Navigation navigation, float scaleRatio)
     {
         xrOrigin.transform.localScale *= scaleRatio;
-        
+
         navigation.speed *= scaleRatio;
         navigation.jumpHeight *= scaleRatio;
-        CharacterController characterController = xrOrigin.GetComponent<CharacterController>();
-        if (characterController != null)
+        if (xrOrigin.TryGetComponent<CharacterController>(out var characterController))
         {
             characterController.height *= scaleRatio;
             characterController.radius *= scaleRatio;
@@ -44,7 +42,7 @@ public class PortalTeleporter : MonoBehaviour
         }
 
         float angleDifference = destinationPortal.transform.eulerAngles.y - xrOrigin.transform.eulerAngles.y;
-        if (destinationPortal.gameObject.tag == "PortalA")
+        if (destinationPortal.gameObject.CompareTag("PortalA"))
         {
             angleDifference += 180;
         }

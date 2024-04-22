@@ -1,8 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class portalManager : MonoBehaviour
+public class PortalManager : MonoBehaviour
 {
     public Transform APos;
     public Transform BPos;
@@ -12,22 +10,16 @@ public class portalManager : MonoBehaviour
         if (col.CompareTag("PortalA"))
         {
             CharacterController cc = GetComponent<CharacterController>();
-
             cc.enabled = false;
-            transform.position = BPos.transform.position;
-            transform.rotation = new Quaternion(transform.rotation.x, BPos.rotation.y, transform.rotation.z, transform.rotation.w);
-
+            transform.SetPositionAndRotation(BPos.transform.position, new Quaternion(transform.rotation.x, BPos.rotation.y, transform.rotation.z, transform.rotation.w));
             cc.enabled = true;
         }
 
         if (col.CompareTag("PortalB"))
         {
             CharacterController cc = GetComponent<CharacterController>();
-
             cc.enabled = false;
-            transform.position = APos.transform.position;
-            transform.rotation = new Quaternion(transform.rotation.x, APos.rotation.y, transform.rotation.z, transform.rotation.w);
-
+            transform.SetPositionAndRotation(APos.transform.position, new Quaternion(transform.rotation.x, APos.rotation.y, transform.rotation.z, transform.rotation.w));
             cc.enabled = true;
         }
     }
