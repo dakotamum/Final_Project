@@ -1,6 +1,5 @@
 // Note: a lot of this code was reused from the tutorials we've done in class
 
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
@@ -17,14 +16,14 @@ public class HandModel : MonoBehaviour
     private Animator handAnimator;
     void Start()
     {
-        getDevices();
+        GetDevices();
 
     }
     void Update()
     {
         if (!isValid)
         {
-            getDevices();
+            GetDevices();
         }
         else
         {
@@ -32,7 +31,7 @@ public class HandModel : MonoBehaviour
             UpdateAnimator();
         }
     }
-    void getDevices()
+    void GetDevices()
     {
         List<InputDevice> devices = new List<InputDevice>();
         InputDevices.GetDevices(devices);
