@@ -61,6 +61,8 @@ public class MovePortalWithRaycast : MonoBehaviour
         XROrigin xrOrigin = FindObjectOfType<XROrigin>();
         if (isRightTriggerPressed)
         {
+            BoxCollider objectToMoveBoxCollider = objectToMove.GetComponent<BoxCollider>();
+            objectToMoveBoxCollider.enabled = false;
             fixedObject.SetActive(false);
             indicator.gameObject.SetActive(true);
             isOnTable = false;
@@ -90,6 +92,7 @@ public class MovePortalWithRaycast : MonoBehaviour
 
                 objectToMove.transform.position = newObjectToMovePosition;
             }
+            objectToMoveBoxCollider.enabled = true;
         }
         else
         {
