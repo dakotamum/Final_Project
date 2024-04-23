@@ -1,32 +1,37 @@
 using System.Collections;
 using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.XR;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class PortalTeleporter : MonoBehaviour
 {
     public Transform destinationPortal;
-    private bool isTeleporting = false;
-    public float teleportCooldown = 1.0f;
+    public static float scaleRatio;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (isTeleporting) return;
-
         XROrigin xrOrigin = FindObjectOfType<XROrigin>();
         Navigation navigation = xrOrigin.GetComponent<Navigation>();
 
-        if (xrOrigin != null && !isTeleporting)
+        if (xrOrigin != null)
         {
-            xrOrigin.transform.position = destinationPortal.position;
+            if (destinationPortal.gameObject.CompareTag("PortalA"))
+            {
+                xrOrigin.transform.position = destinationPortal.position - destinationPortal.forward * destinationPortal.localScale.y;
+            }
+            else
+            {
+                xrOrigin.transform.position = destinationPortal.position + destinationPortal.forward * destinationPortal.localScale.y;
+            }
 
-            float scaleRatio = destinationPortal.localScale.y / xrOrigin.transform.localScale.y;
+            scaleRatio = destinationPortal.localScale.y / xrOrigin.transform.localScale.y;
 
-            AdjustPlayer(xrOrigin, navigation, scaleRatio);
-            StartCoroutine(TeleportCooldown());
+            AdjustPlayer(xrOrigin, navigation);
         }
     }
 
-    void AdjustPlayer(XROrigin xrOrigin, Navigation navigation, float scaleRatio)
+    void AdjustPlayer(XROrigin xrOrigin, Navigation navigation)
     {
         xrOrigin.transform.localScale *= scaleRatio;
 
@@ -47,12 +52,5 @@ public class PortalTeleporter : MonoBehaviour
             angleDifference += 180;
         }
         xrOrigin.transform.Rotate(0, angleDifference, 0);
-    }
-
-    private IEnumerator TeleportCooldown()
-    {
-        isTeleporting = true;
-        yield return new WaitForSeconds(teleportCooldown);
-        isTeleporting = false;
     }
 }
