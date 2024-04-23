@@ -15,13 +15,16 @@ public class MovePortalWithRaycast : MonoBehaviour
     private readonly float scaleSpeed = 0.5f;
     private readonly float rotationSpeed = 45f;
     private bool isOnTable = true;
+    private bool isOnForest = false;
     private bool portalToggle = false;
 
     private float lastToggleTime = 0f;
     private readonly float toggleCooldown = 0.5f;
 
+
     void Update()
     {
+        Transform indicator = objectToMove.transform.Find("Indicator");
         if (Time.time - lastToggleTime > toggleCooldown)
         {
             leftDevice = InputDevices.GetDeviceAtXRNode(leftInputSource);
@@ -47,6 +50,7 @@ public class MovePortalWithRaycast : MonoBehaviour
 
         if (isRightTriggerPressed)
         {
+            indicator.gameObject.SetActive(true);
             if (rayInteractor.TryGetCurrent3DRaycastHit(out RaycastHit hit))
             {
                 XROrigin xrOrigin = FindObjectOfType<XROrigin>();
@@ -56,12 +60,18 @@ public class MovePortalWithRaycast : MonoBehaviour
                 if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Table"))
                 {
                     isOnTable = true;
-                    newObjectToMovePosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y);
+                    newObjectToMovePosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
                 }
                 else if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Floor"))
                 {
                     isOnTable = false;
-                    newObjectToMovePosition.y = objectToMove.transform.localScale.y;
+                    newObjectToMovePosition.y = - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
+                }
+                else if (hit.transform.gameObject.layer == LayerMask.NameToLayer("ForestFloor"))
+                {
+                    isOnForest = true;
+                    isOnTable = false;
+                    newObjectToMovePosition.y = - (1.0f - objectToMove.transform.localScale.y) + 1.75f * objectToMove.transform.localScale.y;
                 }
 
                 // newObjectToMovePosition.y = objectToMove.transform.localScale.y / 2;
@@ -81,12 +91,16 @@ public class MovePortalWithRaycast : MonoBehaviour
 
                 objectToMove.transform.SetPositionAndRotation(newObjectToMovePosition, xrOrigin.transform.rotation);
                 fixedObject.transform.SetPositionAndRotation(newFixedObjectPosition, xrOrigin.transform.rotation);
-                fixedObject.transform.localScale = xrOrigin.transform.localScale * 0.5f;
+                //fixedObject.transform.localScale = xrOrigin.transform.localScale * 0.5f;
 
                 //Set the entry portal slightly away from the player
                 //Vector3 modifiedFixedPoint = (xrOrigin.transform.forward * 0.75f) + xrOrigin.transform.position;
                 //fixedObject.transform.position = modifiedFixedPoint;
             }
+        }
+        else
+        {
+            indicator.gameObject.SetActive(false);
         }
 
         rightDevice.TryGetFeatureValue(CommonUsages.primaryButton, out bool isAPressed);
@@ -105,11 +119,15 @@ public class MovePortalWithRaycast : MonoBehaviour
             Vector3 newPosition = objectToMove.transform.position;
             if (isOnTable)
             {
-                newPosition.y = 1 - (1 - objectToMove.transform.localScale.y);
+                newPosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
             }
-            else
+            else if (isOnForest)
             {
-                newPosition.y = -(0.5f - objectToMove.transform.localScale.y);
+                newPosition.y = - (1.0f - objectToMove.transform.localScale.y) + 1.75f * objectToMove.transform.localScale.y;
+            }
+            else 
+            {
+                newPosition.y = - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
             }
             objectToMove.transform.position = newPosition;
         }
@@ -125,11 +143,15 @@ public class MovePortalWithRaycast : MonoBehaviour
             Vector3 newPosition = objectToMove.transform.position;
             if (isOnTable)
             {
-                newPosition.y = 1 - (1 - objectToMove.transform.localScale.y);
+                newPosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
             }
-            else
+            else if (isOnForest)
             {
-                newPosition.y = -(0.5f - objectToMove.transform.localScale.y);
+                newPosition.y = - (1.0f - objectToMove.transform.localScale.y) + 1.75f * objectToMove.transform.localScale.y;
+            }
+            else 
+            {
+                newPosition.y = - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
             }
             objectToMove.transform.position = newPosition;
         }
