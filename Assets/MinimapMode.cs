@@ -11,7 +11,7 @@ public class Minimap : MonoBehaviour
     private InputDevice leftDevice;
     private InputDevice rightDevice;
 
-    private readonly float minimapHeight = 75f;
+    private readonly float minimapHeight = 60f;
     private Vector3 minimapRotation = new(90f, 0f, 0f);
 
     public static bool isMinimapActive = false;

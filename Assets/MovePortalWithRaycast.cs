@@ -13,14 +13,21 @@ public class MovePortalWithRaycast : MonoBehaviour
     private InputDevice leftDevice;
     private InputDevice rightDevice;
     private readonly float scaleSpeed = 0.5f;
-    private readonly float rotationSpeed = 45f;
-    private bool isOnTable = true;
-    private bool isOnForest = false;
+    private readonly float rotationSpeed = 55f;
+    private static bool isOnTable = false;
+    private static bool isOnForest = false;
     private bool portalToggle = false;
 
     private float lastToggleTime = 0f;
     private readonly float toggleCooldown = 0.5f;
 
+    private static bool handlePortalA = false;
+
+    private void Start()
+    {
+        XROrigin xrOrigin = FindObjectOfType<XROrigin>();
+        fixedObject.transform.localScale = xrOrigin.transform.localScale;
+    }
 
     void Update()
     {
@@ -35,7 +42,10 @@ public class MovePortalWithRaycast : MonoBehaviour
             {
                 portalToggle = !portalToggle;
                 objectToMove.SetActive(portalToggle);
-                fixedObject.SetActive(portalToggle);
+                if (!portalToggle && fixedObject.activeSelf)
+                {
+                    fixedObject.SetActive(false);
+                }
                 lastToggleTime = Time.time;
             }
         }
@@ -48,12 +58,16 @@ public class MovePortalWithRaycast : MonoBehaviour
         rightDevice = InputDevices.GetDeviceAtXRNode(rightInputSource);
         rightDevice.TryGetFeatureValue(CommonUsages.triggerButton, out bool isRightTriggerPressed);
 
+        XROrigin xrOrigin = FindObjectOfType<XROrigin>();
         if (isRightTriggerPressed)
         {
+            fixedObject.SetActive(false);
             indicator.gameObject.SetActive(true);
+            isOnTable = false;
+            isOnForest = false;
             if (rayInteractor.TryGetCurrent3DRaycastHit(out RaycastHit hit))
             {
-                XROrigin xrOrigin = FindObjectOfType<XROrigin>();
+                handlePortalA = true;
 
                 Vector3 newObjectToMovePosition = hit.point;
 
@@ -62,19 +76,29 @@ public class MovePortalWithRaycast : MonoBehaviour
                     isOnTable = true;
                     newObjectToMovePosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
                 }
+                else if (hit.transform.gameObject.layer == LayerMask.NameToLayer("ForestFloor"))
+                {
+                    isOnForest = true;
+                    isOnTable = false;
+                    newObjectToMovePosition.y = -(1.0f - objectToMove.transform.localScale.y) + 1.75f * objectToMove.transform.localScale.y;
+                }
                 else if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Floor"))
                 {
                     isOnTable = false;
                     newObjectToMovePosition.y = - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
                 }
-                else if (hit.transform.gameObject.layer == LayerMask.NameToLayer("ForestFloor"))
-                {
-                    isOnForest = true;
-                    isOnTable = false;
-                    newObjectToMovePosition.y = - (1.0f - objectToMove.transform.localScale.y) + 1.75f * objectToMove.transform.localScale.y;
-                }
 
-                // newObjectToMovePosition.y = objectToMove.transform.localScale.y / 2;
+                objectToMove.transform.position = newObjectToMovePosition;
+            }
+        }
+        else
+        {
+            indicator.gameObject.SetActive(false);
+
+            if (handlePortalA)
+            {
+                fixedObject.SetActive(true);
+                fixedObject.transform.localScale = xrOrigin.transform.localScale;
 
                 Vector3 newFixedObjectPosition;
                 if (Minimap.isMinimapActive)
@@ -85,22 +109,11 @@ public class MovePortalWithRaycast : MonoBehaviour
                 {
                     newFixedObjectPosition = xrOrigin.transform.position + xrOrigin.transform.forward * xrOrigin.transform.localScale.magnitude;
                 }
-
-                //Move both the exit portal and the entry portal to new locations, and both having the Player orientation
-
-
-                objectToMove.transform.SetPositionAndRotation(newObjectToMovePosition, xrOrigin.transform.rotation);
                 fixedObject.transform.SetPositionAndRotation(newFixedObjectPosition, xrOrigin.transform.rotation);
-                //fixedObject.transform.localScale = xrOrigin.transform.localScale * 0.5f;
-
-                //Set the entry portal slightly away from the player
-                //Vector3 modifiedFixedPoint = (xrOrigin.transform.forward * 0.75f) + xrOrigin.transform.position;
-                //fixedObject.transform.position = modifiedFixedPoint;
+                
+                handlePortalA = false;
             }
-        }
-        else
-        {
-            indicator.gameObject.SetActive(false);
+
         }
 
         rightDevice.TryGetFeatureValue(CommonUsages.primaryButton, out bool isAPressed);
@@ -135,12 +148,13 @@ public class MovePortalWithRaycast : MonoBehaviour
         if (isBPressed)
         {
             Vector3 newScale = objectToMove.transform.localScale + scaleSpeed * Time.deltaTime * Vector3.one;
-            newScale.x = Mathf.Min(3f, newScale.x);
-            newScale.y = Mathf.Min(3f, newScale.y);
-            newScale.z = Mathf.Min(3f, newScale.z);
+            newScale.x = Mathf.Min(1f, newScale.x);
+            newScale.y = Mathf.Min(1f, newScale.y);
+            newScale.z = Mathf.Min(1f, newScale.z);
 
             objectToMove.transform.localScale = newScale;
             Vector3 newPosition = objectToMove.transform.position;
+
             if (isOnTable)
             {
                 newPosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;

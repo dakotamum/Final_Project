@@ -30,7 +30,7 @@ public class Navigation : MonoBehaviour
         }
         else
         {
-            fallingSpeed += Physics.gravity.y * Time.fixedDeltaTime; // apply gravity
+            fallingSpeed += Physics.gravity.y * PortalTeleporter.scaleRatio * Time.fixedDeltaTime; // apply gravity
         }
 
         Vector3 fallMovement = fallingSpeed * Time.fixedDeltaTime * Vector3.up;
