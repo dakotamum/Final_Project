@@ -1,5 +1,7 @@
 using Unity.XR.CoreUtils;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.InputSystem.XR;
 using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit;
 
@@ -15,7 +17,6 @@ public class MovePortalWithRaycast : MonoBehaviour
     private readonly float scaleSpeed = 0.5f;
     private readonly float rotationSpeed = 55f;
     private static bool isOnTable = false;
-    private static bool isOnForest = false;
     private bool portalToggle = false;
 
     private float lastToggleTime = 0f;
@@ -23,10 +24,18 @@ public class MovePortalWithRaycast : MonoBehaviour
 
     private static bool handlePortalA = false;
 
+    private Vector3 initialScale;
+    private float initialDistance;
+    private float initialLeftAngle;
+    private float initialRightAngle;
+    private float initialObjectAngle;
+
     private void Start()
     {
         XROrigin xrOrigin = FindObjectOfType<XROrigin>();
         fixedObject.transform.localScale = xrOrigin.transform.localScale;
+        initialScale = objectToMove.transform.localScale;
+        rayInteractor.hitClosestOnly = true;
     }
 
     void Update()
@@ -41,10 +50,10 @@ public class MovePortalWithRaycast : MonoBehaviour
             if (isLeftTriggerPressed)
             {
                 portalToggle = !portalToggle;
-                objectToMove.SetActive(portalToggle);
                 if (!portalToggle && fixedObject.activeSelf)
                 {
                     fixedObject.SetActive(false);
+                    objectToMove.SetActive(false);
                 }
                 lastToggleTime = Time.time;
             }
@@ -61,12 +70,13 @@ public class MovePortalWithRaycast : MonoBehaviour
         XROrigin xrOrigin = FindObjectOfType<XROrigin>();
         if (isRightTriggerPressed)
         {
+            BoxCollider fixedObjectBoxCollider = fixedObject.GetComponent<BoxCollider>();
             BoxCollider objectToMoveBoxCollider = objectToMove.GetComponent<BoxCollider>();
+            fixedObjectBoxCollider.enabled = false;
             objectToMoveBoxCollider.enabled = false;
             fixedObject.SetActive(false);
+            objectToMove.SetActive(true);
             indicator.gameObject.SetActive(true);
-            isOnTable = false;
-            isOnForest = false;
             if (rayInteractor.TryGetCurrent3DRaycastHit(out RaycastHit hit))
             {
                 handlePortalA = true;
@@ -78,20 +88,26 @@ public class MovePortalWithRaycast : MonoBehaviour
                     isOnTable = true;
                     newObjectToMovePosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
                 }
-                else if (hit.transform.gameObject.layer == LayerMask.NameToLayer("ForestFloor"))
-                {
-                    isOnForest = true;
-                    isOnTable = false;
-                    newObjectToMovePosition.y = -(1.0f - objectToMove.transform.localScale.y) + 1.75f * objectToMove.transform.localScale.y;
-                }
                 else if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Floor"))
                 {
                     isOnTable = false;
-                    newObjectToMovePosition.y = - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
+                    newObjectToMovePosition.y = -(1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
+                }
+
+                if (newObjectToMovePosition.y < -1.0f)
+                {
+                    newObjectToMovePosition.y = -1;
                 }
 
                 objectToMove.transform.position = newObjectToMovePosition;
             }
+            else
+            {
+                fixedObjectBoxCollider.enabled = true;
+                objectToMoveBoxCollider.enabled = true;
+                return;
+            }
+            fixedObjectBoxCollider.enabled = true;
             objectToMoveBoxCollider.enabled = true;
         }
         else
@@ -121,66 +137,100 @@ public class MovePortalWithRaycast : MonoBehaviour
 
         rightDevice.TryGetFeatureValue(CommonUsages.primaryButton, out bool isAPressed);
         rightDevice.TryGetFeatureValue(CommonUsages.secondaryButton, out bool isBPressed);
+        
         leftDevice.TryGetFeatureValue(CommonUsages.primaryButton, out bool isXPressed);
         leftDevice.TryGetFeatureValue(CommonUsages.secondaryButton, out bool isYPressed);
+        
 
-        if (isAPressed)
+        if (isAPressed || isXPressed)
         {
-            Vector3 newScale = objectToMove.transform.localScale - scaleSpeed * Time.deltaTime * Vector3.one;
-            newScale.x = Mathf.Max(0.08f, newScale.x);
-            newScale.y = Mathf.Max(0.08f, newScale.y);
-            newScale.z = Mathf.Max(0.08f, newScale.z);
+            rightDevice.TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 rightHandPosition);
+            leftDevice.TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 leftHandPosition);
 
-            objectToMove.transform.localScale = newScale;
-            Vector3 newPosition = objectToMove.transform.position;
-            if (isOnTable)
+            if (initialDistance == 0)
             {
-                newPosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
+                initialDistance = Vector3.Distance(leftHandPosition, rightHandPosition);
             }
-            else if (isOnForest)
+            else
             {
-                newPosition.y = - (1.0f - objectToMove.transform.localScale.y) + 1.75f * objectToMove.transform.localScale.y;
+                float currentDistance = Vector3.Distance(leftHandPosition, rightHandPosition);
+                float scaleMultiplier = currentDistance / initialDistance;
+
+                Vector3 newScale = 1.1f * scaleMultiplier * initialScale;
+                if (scaleMultiplier < 1)
+                {
+                    newScale.x = Mathf.Max(0.08f, newScale.x);
+                    newScale.y = Mathf.Max(0.08f, newScale.y);
+                    newScale.z = Mathf.Max(0.08f, newScale.z);
+                }
+                else if (scaleMultiplier > 1)
+                {
+                    newScale.x = Mathf.Min(1f, newScale.x);
+                    newScale.y = Mathf.Min(1f, newScale.y);
+                    newScale.z = Mathf.Min(1f, newScale.z);
+                }
+
+                objectToMove.transform.localScale = newScale;
+
+                Vector3 newPosition = objectToMove.transform.position;
+
+                if (isOnTable)
+                {
+                    newPosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
+                }
+                else
+                {
+                    newPosition.y = -(1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
+                }
+                objectToMove.transform.position = newPosition;
             }
-            else 
-            {
-                newPosition.y = - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
-            }
-            objectToMove.transform.position = newPosition;
+        }
+        else
+        {
+            initialDistance = 0;
+            initialScale = objectToMove.transform.localScale;
         }
 
-        if (isBPressed)
-        {
-            Vector3 newScale = objectToMove.transform.localScale + scaleSpeed * Time.deltaTime * Vector3.one;
-            newScale.x = Mathf.Min(1f, newScale.x);
-            newScale.y = Mathf.Min(1f, newScale.y);
-            newScale.z = Mathf.Min(1f, newScale.z);
-
-            objectToMove.transform.localScale = newScale;
-            Vector3 newPosition = objectToMove.transform.position;
-
-            if (isOnTable)
-            {
-                newPosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
-            }
-            else if (isOnForest)
-            {
-                newPosition.y = - (1.0f - objectToMove.transform.localScale.y) + 1.75f * objectToMove.transform.localScale.y;
-            }
-            else 
-            {
-                newPosition.y = - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
-            }
-            objectToMove.transform.position = newPosition;
-        }
-
-        if (isXPressed)
-        {
-            objectToMove.transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime);
-        }
-
+        leftDevice.TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion leftHandRotation);
         if (isYPressed)
         {
-            objectToMove.transform.Rotate(Vector3.up, -rotationSpeed * Time.deltaTime);
+
+            if (initialLeftAngle == 0)
+            {
+                initialLeftAngle = leftHandRotation.eulerAngles.y;
+                initialObjectAngle = objectToMove.transform.eulerAngles.y;
+            }
+            else
+            {
+                float currentAngle = leftHandRotation.eulerAngles.y;
+                float angleDifference = currentAngle - initialLeftAngle;
+                objectToMove.transform.rotation = Quaternion.Euler(0, initialObjectAngle + angleDifference, 0);
+            } 
+        }
+        else
+        {
+            initialLeftAngle = 0;
+        }
+
+        rightDevice.TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion rightHandRotation);
+        if (isBPressed)
+        {
+
+            if (initialRightAngle == 0)
+            {
+                initialRightAngle = rightHandRotation.eulerAngles.y;
+                initialObjectAngle = objectToMove.transform.eulerAngles.y;
+            }
+            else
+            {
+                float currentAngle = rightHandRotation.eulerAngles.y;
+                float angleDifference = currentAngle - initialRightAngle;
+                objectToMove.transform.rotation = Quaternion.Euler(0, initialObjectAngle + angleDifference, 0);
+            }
+        }
+        else
+        {
+            initialRightAngle = 0;
         }
     }
 }

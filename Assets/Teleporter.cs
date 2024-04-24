@@ -1,19 +1,27 @@
-using System.Collections;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.XR;
-using UnityEngine.XR.Interaction.Toolkit;
 
 public class PortalTeleporter : MonoBehaviour
 {
     public Transform destinationPortal;
     public static float scaleRatio;
+    public XRNode rightInputSource;
+    private InputDevice rightDevice;
 
     private void OnTriggerEnter(Collider other)
     {
         XROrigin xrOrigin = FindObjectOfType<XROrigin>();
         Navigation navigation = xrOrigin.GetComponent<Navigation>();
 
+        rightDevice = InputDevices.GetDeviceAtXRNode(rightInputSource);
+        rightDevice.TryGetFeatureValue(CommonUsages.triggerButton, out bool isRightTriggerPressed);
+
+        if (isRightTriggerPressed)
+        {
+            return;
+        }
+        
         if (xrOrigin != null)
         {
             if (destinationPortal.gameObject.CompareTag("PortalA"))
