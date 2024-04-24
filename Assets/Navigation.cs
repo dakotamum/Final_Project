@@ -1,5 +1,6 @@
 using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.XR;
 
 public class Navigation : MonoBehaviour
@@ -59,5 +60,17 @@ public class Navigation : MonoBehaviour
 
         InputDevice rightDevice = InputDevices.GetDeviceAtXRNode(rightInputSource);
         rightDevice.TryGetFeatureValue(CommonUsages.primary2DAxis, out rotationInput);
+
+        leftDevice.TryGetFeatureValue(CommonUsages.primary2DAxisClick, out bool isLeftStickPressed);
+        rightDevice.TryGetFeatureValue(CommonUsages.primary2DAxisClick, out bool isRightStickPressed);
+
+        if (isLeftStickPressed && isRightStickPressed) {
+            Reset();
+        }
+    }
+
+    private void Reset()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
