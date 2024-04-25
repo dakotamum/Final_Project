@@ -11,8 +11,10 @@ public class PortalTeleporter : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        XROrigin xrOrigin = FindObjectOfType<XROrigin>();
-        Navigation navigation = xrOrigin.GetComponent<Navigation>();
+        if (!other.gameObject.CompareTag("Player"))
+        {
+            return;
+        }
 
         rightDevice = InputDevices.GetDeviceAtXRNode(rightInputSource);
         rightDevice.TryGetFeatureValue(CommonUsages.triggerButton, out bool isRightTriggerPressed);
@@ -21,6 +23,9 @@ public class PortalTeleporter : MonoBehaviour
         {
             return;
         }
+
+        XROrigin xrOrigin = FindObjectOfType<XROrigin>();
+        Navigation navigation = xrOrigin.GetComponent<Navigation>();
         
         if (xrOrigin != null)
         {

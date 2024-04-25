@@ -22,8 +22,6 @@ public class MovePortalWithRaycast : MonoBehaviour
     private float lastToggleTime = 0f;
     private readonly float toggleCooldown = 0.5f;
 
-    private static bool handlePortalA = false;
-
     private Vector3 initialScale;
     private float initialDistance;
     private float initialLeftAngle;
@@ -52,7 +50,12 @@ public class MovePortalWithRaycast : MonoBehaviour
                 portalToggle = !portalToggle;
                 if (!portalToggle && fixedObject.activeSelf)
                 {
+                    fixedObject.transform.position = new(-3, -1, -8);
+                    fixedObject.transform.localScale = new(1, 1, 1);
                     fixedObject.SetActive(false);
+
+                    objectToMove.transform.position = new(0, -1, -8);
+                    objectToMove.transform.localScale = new(1, 1, 1);
                     objectToMove.SetActive(false);
                 }
                 lastToggleTime = Time.time;
@@ -70,69 +73,59 @@ public class MovePortalWithRaycast : MonoBehaviour
         XROrigin xrOrigin = FindObjectOfType<XROrigin>();
         if (isRightTriggerPressed)
         {
-            BoxCollider fixedObjectBoxCollider = fixedObject.GetComponent<BoxCollider>();
-            BoxCollider objectToMoveBoxCollider = objectToMove.GetComponent<BoxCollider>();
-            fixedObjectBoxCollider.enabled = false;
-            objectToMoveBoxCollider.enabled = false;
             fixedObject.SetActive(false);
-            objectToMove.SetActive(true);
+            if (!objectToMove.activeSelf)
+            {
+                objectToMove.SetActive(true);
+                objectToMove.transform.localScale = Vector3.one;
+                objectToMove.transform.rotation = Quaternion.Euler(0, xrOrigin.Camera.transform.eulerAngles.y, 0);
+            }
+
             indicator.gameObject.SetActive(true);
             if (rayInteractor.TryGetCurrent3DRaycastHit(out RaycastHit hit))
             {
-                handlePortalA = true;
-
-                Vector3 newObjectToMovePosition = hit.point;
-
-                if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Table"))
+                if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Floor"))
                 {
-                    isOnTable = true;
-                    newObjectToMovePosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
+                    Vector3 newObjectToMovePosition = hit.point + new Vector3(0f, 0.001f, 0f);
+                    objectToMove.transform.position = newObjectToMovePosition;
                 }
-                else if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Floor"))
-                {
-                    isOnTable = false;
-                    newObjectToMovePosition.y = -(1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
-                }
-
-                if (newObjectToMovePosition.y < -1.0f)
-                {
-                    newObjectToMovePosition.y = -1;
-                }
-
-                objectToMove.transform.position = newObjectToMovePosition;
             }
             else
             {
-                fixedObjectBoxCollider.enabled = true;
-                objectToMoveBoxCollider.enabled = true;
                 return;
             }
-            fixedObjectBoxCollider.enabled = true;
-            objectToMoveBoxCollider.enabled = true;
         }
-        else
+        else if (!isRightTriggerPressed && indicator.gameObject.activeSelf)
         {
             indicator.gameObject.SetActive(false);
 
-            if (handlePortalA)
+            fixedObject.SetActive(true);
+            fixedObject.transform.localScale = xrOrigin.transform.localScale;
+
+            Vector3 newFixedObjectPosition;
+            Vector3 offset = new(0, 0.2f, 0);
+            if (Minimap.isMinimapActive)
             {
-                fixedObject.SetActive(true);
-                fixedObject.transform.localScale = xrOrigin.transform.localScale;
-
-                Vector3 newFixedObjectPosition;
-                if (Minimap.isMinimapActive)
+                if (Physics.Raycast(Minimap.originalPosition + offset, -Vector3.up, out RaycastHit hit))
                 {
-                    newFixedObjectPosition = Minimap.originalPosition + Minimap.originalForward * xrOrigin.transform.localScale.magnitude;
+                    if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Floor"))
+                    {
+                        newFixedObjectPosition = hit.point + new Vector3(0f, 0.001f, 0f) + Minimap.originalForward * xrOrigin.transform.localScale.magnitude;
+                        fixedObject.transform.SetPositionAndRotation(newFixedObjectPosition, Minimap.originalRotation);
+                    }
                 }
-                else
-                {
-                    newFixedObjectPosition = xrOrigin.transform.position + xrOrigin.transform.forward * xrOrigin.transform.localScale.magnitude;
-                }
-                fixedObject.transform.SetPositionAndRotation(newFixedObjectPosition, xrOrigin.transform.rotation);
-                
-                handlePortalA = false;
             }
-
+            else
+            {
+                if (Physics.Raycast(xrOrigin.Camera.transform.position + offset, -Vector3.up, out RaycastHit hit))
+                {
+                    if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Floor"))
+                    {
+                        newFixedObjectPosition = hit.point + new Vector3(0f, 0.001f, 0f) + xrOrigin.transform.forward * xrOrigin.transform.localScale.magnitude;
+                        fixedObject.transform.SetPositionAndRotation(newFixedObjectPosition, xrOrigin.transform.rotation);
+                    }
+                }
+            }
         }
 
         rightDevice.TryGetFeatureValue(CommonUsages.primaryButton, out bool isAPressed);
@@ -171,18 +164,6 @@ public class MovePortalWithRaycast : MonoBehaviour
                 }
 
                 objectToMove.transform.localScale = newScale;
-
-                Vector3 newPosition = objectToMove.transform.position;
-
-                if (isOnTable)
-                {
-                    newPosition.y = 1.0f - (1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
-                }
-                else
-                {
-                    newPosition.y = -(1.0f - objectToMove.transform.localScale.y) + 0.75f * objectToMove.transform.localScale.y;
-                }
-                objectToMove.transform.position = newPosition;
             }
         }
         else
