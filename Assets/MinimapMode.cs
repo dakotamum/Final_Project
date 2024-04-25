@@ -49,7 +49,8 @@ public class Minimap : MonoBehaviour
 
     private void ToggleMinimap()
     {
-        if (!isMinimapActive)
+        isMinimapActive = !isMinimapActive;
+        if (isMinimapActive)
         {
             EnterMinimapMode();
         }
@@ -57,14 +58,13 @@ public class Minimap : MonoBehaviour
         {
             ExitMinimapMode();
         }
-        isMinimapActive = !isMinimapActive;
     }
 
     private void EnterMinimapMode()
     {
-        originalPosition = rig.transform.position;
-        originalRotation = rig.Camera.transform.rotation;
-        originalForward = rig.Camera.transform.forward;
+        originalPosition = rig.Camera.transform.position;
+        originalRotation = rig.transform.rotation;
+        originalForward = rig.transform.forward;
         originalOrthographicSize = rig.Camera.orthographicSize;
         originalCameraState = rig.Camera.orthographic;
         rig.Camera.orthographic = true;
